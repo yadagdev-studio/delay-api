@@ -1,0 +1,10 @@
+services:
+  delay-api:
+    build: .
+    container_name: delay-api
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Tokyo
+      - NODE_ENV=production
