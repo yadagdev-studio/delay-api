@@ -17,15 +17,15 @@ jobs:
     steps:
       - name: Ensure app dir
         run: |
-          mkdir -p /home/chronos/apps/delay-api
+          mkdir -p /home/chronos/workspace/apps/delay-api
 
       - name: Checkout into Chronos app dir
         uses: actions/checkout@v4
         with:
-          path: /home/chronos/apps/delay-api
+          path: /home/chronos/workspace/apps/delay-api
 
       - name: Deploy with Docker Compose
-        working-directory: /home/chronos/apps/delay-api
+        working-directory: /home/chronos/workspace/apps/delay-api
         run: |
           docker compose up -d --build
           docker ps --filter "name=delay-api"
