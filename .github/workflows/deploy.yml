@@ -2,8 +2,7 @@ name: deploy
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
 
 concurrency:
   group: deploy-delay-api
@@ -11,24 +10,38 @@ concurrency:
 
 jobs:
   deploy:
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 30
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: repo
+
       - name: Ensure app dir
         run: |
           mkdir -p /home/chronos/workspace/apps/delay-api
 
-      - name: Checkout into Chronos app dir
-        uses: actions/checkout@v4
-        with:
-          path: /home/chronos/workspace/apps/delay-api
+      - name: Sync repo to app dir
+        run: |
+          rsync -a --delete repo/ /home/chronos/workspace/apps/delay-api/
 
       - name: Deploy with Docker Compose
         working-directory: /home/chronos/workspace/apps/delay-api
         run: |
-          docker compose up -d --build
+          docker compose -p delay-api up -d --build
           docker ps --filter "name=delay-api"
+
       - name: Smoke test
         run: |
-          curl -fsS localhost:3000/healthz
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:3000/healthz >/dev/null; then
+              echo "OK"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Smoke test failed"
+          curl -v http://localhost:3000/healthz || true
+          exit 1
