@@ -33,15 +33,23 @@ jobs:
           docker compose -p delay-api up -d --build
           docker ps --filter "name=delay-api"
 
-      - name: Smoke test
+      - name: Smoke test via nginx
         run: |
+          ok=0
           for i in $(seq 1 30); do
-            if curl -fsS http://localhost:3000/healthz >/dev/null; then
-              echo "OK"
-              exit 0
+            if curl -fsS "http://localhost:8081/delay-api/healthz"; then
+              ok=1
+              break
             fi
             sleep 1
           done
-          echo "Smoke test failed"
-          curl -v http://localhost:3000/healthz || true
-          exit 1
+
+          if [ "$ok" -ne 1 ]; then
+            echo "Smoke test failed"
+            curl -v "http://localhost:8081/healthz" || true
+            curl -v "http://localhost:8081/delay-api/healthz" || true
+            exit 1
+          fi
+
+          # optional: confirm delay endpoint too
+          curl -fsS "http://localhost:8081/delay-api/delay?ms=10" >/dev/null
