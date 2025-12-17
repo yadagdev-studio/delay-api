@@ -2,6 +2,7 @@ import http from "node:http";
 import { URL } from "node:url";
 
 const PORT = Number(process.env.PORT ?? 3000);
+const host = process.env.HOST ?? "0.0.0.0";
 
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
@@ -32,7 +33,7 @@ const server = http.createServer(async (req, res) => {
   res.end(JSON.stringify({ error: "not found" }));
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, host, () => {
   // eslint-disable-next-line no-console
-  console.log(`delay-api listening on :${PORT}`);
+  console.log(`delay-api listening on ${host} :${PORT}`);
 });
