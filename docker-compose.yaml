@@ -1,7 +1,7 @@
+name: delay-api
 services:
   delay-api:
     build: .
-    container_name: delay-api
     restart: unless-stopped
     environment:
       TZ: Asia/Tokyo
