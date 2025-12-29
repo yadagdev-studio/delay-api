@@ -64,5 +64,7 @@ jobs:
             exit 1
           fi
 
-          # optional: confirm authentication policy does not block deployment
+      - name: Optional auth policy check
+        run: |
           docker run --rm --network devops-edge curlimages/curl -fsS "http://devops-proxy/delay-api/healthz" || true
+        continue-on-error: true
