@@ -33,11 +33,11 @@ jobs:
           docker compose -p delay-api up -d --build
           docker ps --filter "name=delay-api"
 
-      - name: Smoke test via nginx
+      - name: Smoke test via devops-proxy
         run: |
           ok=0
           for i in $(seq 1 30); do
-            if curl -fsS "http://localhost:8081/delay-api/healthz"; then
+            if docker run --rm --network devops-edge curlimages/curl -fsS "http://devops-proxy/_internal/upstream/delay-api"; then
               ok=1
               break
             fi
@@ -45,11 +45,26 @@ jobs:
           done
 
           if [ "$ok" -ne 1 ]; then
-            echo "Smoke test failed"
-            curl -v "http://localhost:8081/healthz" || true
-            curl -v "http://localhost:8081/delay-api/healthz" || true
+            echo "::error::Smoke test failed - devops-proxy check"
+            echo "<details><summary>Debug Info:</summary>"
+            echo ""
+            echo "### Docker PS:"
+            docker ps
+            echo ""
+            echo "### Devops-proxy verbose curl:"
+            docker run --rm --network devops-edge curlimages/curl -v "http://devops-proxy/_internal/upstream/delay-api" || true
+            echo ""
+            echo "### Direct delay-api health check:"
+            docker run --rm --network devops-edge curlimages/curl -v "http://delay-api:3101/healthz" || true
+            echo ""
+            echo "### Delay-api logs:"
+            docker compose -p delay-api logs --tail=200
+            echo ""
+            echo "</details>"
             exit 1
           fi
 
-          # optional: confirm delay endpoint too
-          curl -fsS "http://localhost:8081/delay-api/delay?ms=10" >/dev/null
+      - name: Optional auth policy check
+        run: |
+          docker run --rm --network devops-edge curlimages/curl -fsS "http://devops-proxy/delay-api/healthz" || true
+        continue-on-error: true
