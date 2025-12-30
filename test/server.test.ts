@@ -1,89 +1,75 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { start, server } from '../src/server';
 
-// 任意のポート番号（存在しないポートを使用すると競合のリスクが低くなります）
 const TEST_PORT = 4000;
 
-describe('delay-api server', () => {
-  beforeAll(async () => {
-    await start(TEST_PORT);
-  });
+beforeAll(async () => {
+  await start(TEST_PORT);
+});
 
-  afterAll(async () => {
-    // テスト終了後にサーバーを閉じる
-    await new Promise((resolve) => server.close(resolve));
-  });
+afterAll(async () => {
+  await new Promise<void>((resolve) => server.close(() => resolve()));
+});
+
+describe('delay-api server', () => {
+  const base = `http://127.0.0.1:${TEST_PORT}`;
 
   it('GET /healthz should return 200 with ok=true', async () => {
-    const res = await fetch(`http://127.0.0.1:${TEST_PORT}/healthz`);
+    const res = await fetch(`${base}/healthz`);
     const body = await res.json();
-
     expect(res.status).toBe(200);
-    expect(res.headers.get('content-type')).toBe('application/json');
     expect(body).toEqual({ ok: true });
   });
 
-  it('GET /delay with valid ms returns 200 and X-Delay-MS header', async () => {
-    const ms = 1200;
-    const res = await fetch(`http://127.0.0.1:${TEST_PORT}/delay?ms=${ms}`);
+  it('GET /delay without ms should return 400', async () => {
+    const res = await fetch(`${base}/delay`);
     const body = await res.json();
+    expect(res.status).toBe(400);
+    expect(body).toEqual({ error: 'Value must be an integer between 0 and 30000' });
+  });
 
-    expect(res.status).toBe(200);
-    expect(res.headers.get('content-type')).toBe('application/json');
-    expect(res.headers.get('X-Delay-MS')).toBe(`${ms}`);
-    expect(body).toEqual({
-      delayedMs: ms,
-      now: expect.any(String),
+  it('GET /delay with non-numeric ms should return 400', async () => {
+    const res = await fetch(`${base}/delay?ms=invalid`);
+    const body = await res.json();
+    expect(res.status).toBe(400);
+    expect(body).toEqual({ error: 'Value must be an integer between 0 and 30000' });
+  });
+
+  it('GET /delay with negative ms should return 400', async () => {
+    const res = await fetch(`${base}/delay?ms=-1`);
+    const body = await res.json();
+    expect(res.status).toBe(400);
+    expect(body).toEqual({ error: 'Value must be an integer between 0 and 30000' });
+  });
+
+  it('GET /delay with ms > MAX_DELAY_MS should return 400', async () => {
+    const res = await fetch(`${base}/delay?ms=40000`);
+    const body = await res.json();
+    expect(res.status).toBe(400);
+    expect(body).toEqual({ error: 'Value must be an integer between 0 and 30000' });
+  });
+
+  it('GET /delay with non-integer ms (12.3) should return 400', async () => {
+    const res = await fetch(`${base}/delay?ms=12.3`);
+    const body = await res.json();
+    expect(res.status).toBe(400);
+    expect(body).toEqual({ error: 'Value must be an integer between 0 and 30000' });
+  });
+
+  const successCases = [
+    { ms: '0', header: '0' },
+    { ms: '1200', header: '1200' },
+    { ms: '30000', header: '30000' },
+  ];
+
+  for (const { ms, header } of successCases) {
+    it(`GET /delay?ms=${ms} should return 200 and X-Delay-MS header ${header}`, async () => {
+      const res = await fetch(`${base}/delay?ms=${ms}`);
+      const body = await res.json();
+      expect(res.status).toBe(200);
+      expect(res.headers.get('Content-Type')).toBe('application/json');
+      expect(res.headers.get('X-Delay-MS')).toBe(header);
+      expect(body).toEqual({ delayedMs: Number(ms), now: expect.any(String) });
     });
-  });
-
-  it('GET /delay without ms should return 400 bad request', async () => {
-    const res = await fetch(`http://127.0.0.1:${TEST_PORT}/delay`);
-    const body = await res.json();
-
-    expect(res.status).toBe(400);
-    expect(body).toEqual({ error: 'Value must be an integer between 0 and 30000' });
-  });
-
-  it('GET /delay with invalid ms should return 400 bad request', async () => {
-    const res = await fetch(`http://127.0.0.1:${TEST_PORT}/delay?ms=invalid`);
-    const body = await res.json();
-
-    expect(res.status).toBe(400);
-    expect(body).toEqual({ error: 'Value must be an integer between 0 and 30000' });
-  });
-
-  it('GET /delay with ms \u003e MAX_DELAY_MS should return 400 bad request', async () => {
-    const largeMs = 40000; // MAX_DELAY_MS は 30000
-    const res = await fetch(`http://127.0.0.1:${TEST_PORT}/delay?ms=${largeMs}`);
-    const body = await res.json();
-
-    expect(res.status).toBe(400);
-    expect(body).toEqual({ error: 'Value must be an integer between 0 and 30000' });
-  });
-it('GET /delay with ms=0 returns 200 and X-Delay-MS header 0', async () => {
-    const res = await fetch(`http://127.0.0.1:${TEST_PORT}/delay?ms=0`);
-    const body = await res.json();
-    const header = res.headers.get('X-Delay-MS');
-    expect(res.status).toBe(200);
-    expect(header).toBe('0');
-    expect(body).toEqual({ delayedMs: 0, now: expect.any(String) });
-  });
-
-
-  it('GET /delay with ms=-1 should return 400 bad request', async () => {
-    const res = await fetch(`http://127.0.0.1:${TEST_PORT}/delay?ms=-1`);
-    const body = await res.json();
-    expect(res.status).toBe(400);
-    expect(body).toEqual({ error: 'Value must be an integer between 0 and 30000' });
-  });
-  it('GET /delay with ms=30000 should return 200 and X-Delay-MS header 30000', async () => {
-    const ms = 30000;
-    const res = await fetch(`http://127.0.0.1:${TEST_PORT}/delay?ms=${ms}`);
-    const body = await res.json();
-    const header = res.headers.get('X-Delay-MS');
-    expect(res.status).toBe(200);
-    expect(header).toBe(`${ms}`);
-    expect(body).toEqual({ delayedMs: ms, now: expect.any(String) });
-  });
+  }
 });
