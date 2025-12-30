@@ -42,7 +42,7 @@ describe('delay-api server', () => {
     const body = await res.json();
 
     expect(res.status).toBe(400);
-    expect(body).toEqual({ error: 'bad request' });
+    expect(body).toEqual({ error: '400 - Bad request, 0以上30000以下の整数を指定してください。' });
   });
 
   it('GET /delay with invalid ms should return 400 bad request', async () => {
@@ -50,7 +50,7 @@ describe('delay-api server', () => {
     const body = await res.json();
 
     expect(res.status).toBe(400);
-    expect(body).toEqual({ error: 'bad request' });
+    expect(body).toEqual({ error: '400 - Bad request, 0以上30000以下の整数を指定してください。' });
   });
 
   it('GET /delay with ms \u003e MAX_DELAY_MS should return 400 bad request', async () => {
@@ -59,7 +59,7 @@ describe('delay-api server', () => {
     const body = await res.json();
 
     expect(res.status).toBe(400);
-    expect(body).toEqual({ error: 'bad request' });
+    expect(body).toEqual({ error: '400 - Bad request, 0以上30000以下の整数を指定してください。' });
   });
 
   it('GET unknown endpoint should return 404 not found', async () => {

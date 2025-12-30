@@ -26,13 +26,13 @@ const server = http.createServer(async (req, res) => {
     const msRaw = url.searchParams.get("ms");
     if (msRaw == null || msRaw.trim() === "") {
       res.writeHead(400, { "content-type": "application/json" });
-      res.end(JSON.stringify({ error: "bad request" }));
+      res.end(JSON.stringify({ error: "400 - Bad request, 0以上30000以下の整数を指定してください。" }));
       return;
     }
     const msNumber = Number(msRaw);
     if (!Number.isFinite(msNumber) || !Number.isInteger(msNumber) || msNumber < 0 || msNumber > MAX_DELAY_MS) {
       res.writeHead(400, { "content-type": "application/json" });
-      res.end(JSON.stringify({ error: "bad request" }));
+      res.end(JSON.stringify({ error: "400 - Bad request, 0以上30000以下の整数を指定してください。" }));
       return;
     }
     const ms = msNumber;
