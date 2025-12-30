@@ -26,13 +26,13 @@ const server = http.createServer(async (req, res) => {
     const msRaw = url.searchParams.get("ms");
     if (msRaw == null || msRaw.trim() === "") {
       res.writeHead(400, { "content-type": "application/json" });
-      res.end(JSON.stringify({ error: "Invalid ms value" }));
+      res.end(JSON.stringify({ error: "Value must be an integer between 0 and 30000" }));
       return;
     }
     const msNumber = Number(msRaw);
-    if (!Number.isFinite(msNumber) || !Number.isInteger(msNumber) || msNumber < 0 || msNumber > MAX_DELAY_MS) {
+    if (msNumber < 0 || msNumber > MAX_DELAY_MS || !Number.isInteger(msNumber) || !Number.isFinite(msNumber)) {
       res.writeHead(400, { "content-type": "application/json" });
-      res.end(JSON.stringify({ error: "Invalid ms value" }));
+      res.end(JSON.stringify({ error: "Value must be an integer between 0 and 30000" }));
       return;
     }
     const ms = msNumber;
