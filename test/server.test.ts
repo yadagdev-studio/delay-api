@@ -70,10 +70,20 @@ it('GET /delay with ms=0 returns 200 and X-Delay-MS header 0', async () => {
     expect(body).toEqual({ delayedMs: 0, now: expect.any(String) });
   });
 
-  it('GET /delay with non-integer ms (12.3) returns 400', async () => {
-    const res = await fetch(`http://127.0.0.1:${TEST_PORT}/delay?ms=12.3`);
+
+  it('GET /delay with ms=-1 should return 400 bad request', async () => {
+    const res = await fetch(`http://127.0.0.1:${TEST_PORT}/delay?ms=-1`);
     const body = await res.json();
     expect(res.status).toBe(400);
     expect(body).toEqual({ error: 'Invalid ms value' });
+  });
+  it('GET /delay with ms=30000 should return 200 and X-Delay-MS header 30000', async () => {
+    const ms = 30000;
+    const res = await fetch(`http://127.0.0.1:${TEST_PORT}/delay?ms=${ms}`);
+    const body = await res.json();
+    const header = res.headers.get('X-Delay-MS');
+    expect(res.status).toBe(200);
+    expect(header).toBe(`${ms}`);
+    expect(body).toEqual({ delayedMs: ms, now: expect.any(String) });
   });
 });
