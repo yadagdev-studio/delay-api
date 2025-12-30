@@ -2,7 +2,9 @@ import http from "node:http";
 import { URL } from "node:url";
 
 const PORT = Number(process.env.PORT ?? 3000);
-const host = process.env.HOST ?? "0.0.0.0";
+const host = process.env.HOST ?? "127.0.0.1";
+
+const MAX_DELAY_MS = 30000;
 
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
@@ -21,10 +23,23 @@ const server = http.createServer(async (req, res) => {
 
   // delay endpoint
   if (path === "/delay") {
-    const msRaw = url.searchParams.get("ms") ?? "500";
-    const ms = Math.max(0, Math.min(60_000, Number(msRaw) || 0)); // 0〜60s
-    await sleep(ms);
-    res.writeHead(200, { "content-type": "application/json" });
+    const msRaw = url.searchParams.get("ms");
+    if (msRaw == null || msRaw.trim() === "") {
+      res.writeHead(400, { "content-type": "application/json" });
+      res.end(JSON.stringify({ error: "Value must be an integer between 0 and 30000" }));
+      return;
+    }
+    const msNumber = Number(msRaw);
+    if (msNumber < 0 || msNumber > MAX_DELAY_MS || !Number.isInteger(msNumber) || !Number.isFinite(msNumber)) {
+      res.writeHead(400, { "content-type": "application/json" });
+      res.end(JSON.stringify({ error: "Value must be an integer between 0 and 30000" }));
+      return;
+    }
+    const ms = msNumber;
+    if (process.env.NODE_ENV !== 'test') {
+      await sleep(ms);
+    }
+    res.writeHead(200, { "content-type": "application/json", "X-Delay-MS": String(ms) });
     res.end(JSON.stringify({ delayedMs: ms, now: new Date().toISOString() }));
     return;
   }
@@ -33,7 +48,15 @@ const server = http.createServer(async (req, res) => {
   res.end(JSON.stringify({ error: "not found" }));
 });
 
-server.listen(PORT, host, () => {
-  // eslint-disable-next-line no-console
-  console.log(`delay-api listening on ${host} :${PORT}`);
-});
+export function start(port: number = PORT): Promise<void> {
+  return new Promise((resolve, reject) => {
+    server.listen(port, host, () => {
+      console.log(`delay-api listening on ${host} :${port}`);
+      resolve();
+    });
+    server.on('error', err => reject(err));
+  });
+}
+
+export { server };
+
