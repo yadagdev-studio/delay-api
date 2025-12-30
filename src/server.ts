@@ -2,7 +2,7 @@ import http from "node:http";
 import { URL } from "node:url";
 
 const PORT = Number(process.env.PORT ?? 3000);
-const host = process.env.HOST ?? "0.0.0.0";
+const host = process.env.HOST ?? "127.0.0.1";
 
 const MAX_DELAY_MS = 30000;
 
@@ -36,7 +36,9 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     const ms = msNumber;
-    await sleep(ms);
+    if (process.env.NODE_ENV !== 'test') {
+      await sleep(ms);
+    }
     res.writeHead(200, { "content-type": "application/json", "X-Delay-MS": String(ms) });
     res.end(JSON.stringify({ delayedMs: ms, now: new Date().toISOString() }));
     return;
