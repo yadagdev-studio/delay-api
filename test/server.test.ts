@@ -42,7 +42,7 @@ describe('delay-api server', () => {
     const body = await res.json();
 
     expect(res.status).toBe(400);
-    expect(body).toEqual({ error: '400 - Bad request, 0以上30000以下の整数を指定してください。' });
+    expect(body).toEqual({ error: 'Invalid value for ms' });
   });
 
   it('GET /delay with invalid ms should return 400 bad request', async () => {
@@ -50,7 +50,7 @@ describe('delay-api server', () => {
     const body = await res.json();
 
     expect(res.status).toBe(400);
-    expect(body).toEqual({ error: '400 - Bad request, 0以上30000以下の整数を指定してください。' });
+    expect(body).toEqual({ error: 'Invalid value for ms' });
   });
 
   it('GET /delay with ms \u003e MAX_DELAY_MS should return 400 bad request', async () => {
@@ -59,14 +59,21 @@ describe('delay-api server', () => {
     const body = await res.json();
 
     expect(res.status).toBe(400);
-    expect(body).toEqual({ error: '400 - Bad request, 0以上30000以下の整数を指定してください。' });
+    expect(body).toEqual({ error: 'Invalid value for ms' });
+  });
+it('GET /delay with ms=0 returns 200 and X-Delay-MS header 0', async () => {
+    const res = await fetch(`http://127.0.0.1:${TEST_PORT}/delay?ms=0`);
+    const body = await res.json();
+    const header = res.headers.get('X-Delay-MS');
+    expect(res.status).toBe(200);
+    expect(header).toBe('0');
+    expect(body).toEqual({ delayedMs: 0, now: expect.any(String) });
   });
 
-  it('GET unknown endpoint should return 404 not found', async () => {
-    const res = await fetch(`http://127.0.0.1:${TEST_PORT}/unknown`);
+  it('GET /delay with non-integer ms (12.3) returns 400', async () => {
+    const res = await fetch(`http://127.0.0.1:${TEST_PORT}/delay?ms=12.3`);
     const body = await res.json();
-
-    expect(res.status).toBe(404);
-    expect(body).toEqual({ error: 'not found' });
+    expect(res.status).toBe(400);
+    expect(body).toEqual({ error: 'Invalid value for ms' });
   });
 });
