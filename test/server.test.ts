@@ -42,7 +42,7 @@ describe('delay-api server', () => {
     const body = await res.json();
 
     expect(res.status).toBe(400);
-    expect(body).toEqual({ error: 'Invalid ms value: must be integer between 0 and 30000' });
+    expect(body).toEqual({ error: 'Invalid ms value' });
   });
 
   it('GET /delay with invalid ms should return 400 bad request', async () => {
@@ -50,7 +50,7 @@ describe('delay-api server', () => {
     const body = await res.json();
 
     expect(res.status).toBe(400);
-    expect(body).toEqual({ error: 'Invalid ms value: must be integer between 0 and 30000' });
+    expect(body).toEqual({ error: 'Invalid ms value' });
   });
 
   it('GET /delay with ms \u003e MAX_DELAY_MS should return 400 bad request', async () => {
@@ -59,7 +59,7 @@ describe('delay-api server', () => {
     const body = await res.json();
 
     expect(res.status).toBe(400);
-    expect(body).toEqual({ error: 'Invalid ms value: must be integer between 0 and 30000' });
+    expect(body).toEqual({ error: 'Invalid ms value' });
   });
 it('GET /delay with ms=0 returns 200 and X-Delay-MS header 0', async () => {
     const res = await fetch(`http://127.0.0.1:${TEST_PORT}/delay?ms=0`);
@@ -74,6 +74,6 @@ it('GET /delay with ms=0 returns 200 and X-Delay-MS header 0', async () => {
     const res = await fetch(`http://127.0.0.1:${TEST_PORT}/delay?ms=12.3`);
     const body = await res.json();
     expect(res.status).toBe(400);
-    expect(body).toEqual({ error: 'Invalid ms value: must be integer between 0 and 30000' });
+    expect(body).toEqual({ error: 'Invalid ms value' });
   });
 });
