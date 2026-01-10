@@ -10,7 +10,7 @@ function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-const server = http.createServer(async (req, res) => {
+export const server = http.createServer(async (req, res) => {
   const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
   const path = url.pathname;
 
@@ -48,15 +48,20 @@ const server = http.createServer(async (req, res) => {
   res.end(JSON.stringify({ error: "not found" }));
 });
 
-export function start(port: number = PORT): Promise<void> {
+export const start = (port: number = PORT): Promise<void> => {
   return new Promise((resolve, reject) => {
     server.listen(port, host, () => {
       console.log(`delay-api listening on ${host} :${port}`);
       resolve();
     });
-    server.on('error', err => reject(err));
+    server.once('error', err => reject(err));
   });
 }
 
-export { server };
+if (process.env.NODE_ENV !== "test") {
+  start().catch((err) => {
+    console.error("[fatal] failed to start server", err);
+    process.exitCode = 1;
+  })
+}
 
