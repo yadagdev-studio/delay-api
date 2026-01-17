@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { start, server } from '../src/server';
 
 const TEST_PORT = 4000;
@@ -54,6 +54,66 @@ describe('delay-api server', () => {
     const body = await res.json();
     expect(res.status).toBe(400);
     expect(body).toEqual({ error: 'Value must be an integer between 0 and 30000' });
+  });
+
+  it('GET unknown path should return 404 and log once (no rid)', async () => {
+    const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const res = await fetch(`${base}/does-not-exist`);
+    const body = await res.json();
+    expect(res.status).toBe(404);
+    expect(body).toEqual({ error: 'not found' });
+    expect(spy).toHaveBeenCalledTimes(1);
+    const message = String(spy.mock.calls[0][0]);
+    expect(message).toContain('[access] 404');
+    expect(message).toContain('GET');
+    expect(message).toContain('/does-not-exist');
+    expect(message).not.toContain('rid=');
+
+    spy.mockRestore();
+  });
+
+  it('GET unknown path with safe X-Request-Id should log rid', async () => {
+    const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const res = await fetch(`${base}/nope`, {
+      headers: { 'X-Request-Id': 'xxx-123'},
+    });
+    expect(res.status).toBe(404);
+    expect(spy).toHaveBeenCalledTimes(1);
+    const message = String(spy.mock.calls[0][0]);
+    expect(message).toContain('rid=xxx-123');
+
+    spy.mockRestore();
+  });
+
+  it('GET unknown path with unsafe X-Request-Id should NOT log rid', async () => {
+    const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const res = await fetch(`${base}/nope2`, {
+      headers: { 'X-Request-Id': 'xxx 123' },
+    });
+
+    expect(res.status).toBe(404);
+    expect(spy).toHaveBeenCalledTimes(1);
+
+    const message = String(spy.mock.calls[0][0]);
+    expect(message).not.toContain('rid=');
+    spy.mockRestore();
+  });
+
+  it('GET unknown path with too-long X-Request-Id should NOT log rig', async ()=> {
+    const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const res = await fetch(`${base}/nope3`, {
+      headers: { 'X-Request-Id': 'x'.repeat(65) },
+    });
+    const body = await res.json();
+
+    expect(res.status).toBe(404);
+    expect(body).toEqual({ error: 'not found' });
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    const message = String(spy.mock.calls[0][0]);
+    expect(message).not.toContain('rid=');
+
+    spy.mockRestore();
   });
 
   const successCases = [

@@ -1,4 +1,5 @@
 import http from "node:http";
+import type { IncomingMessage } from "node:http";
 import { URL } from "node:url";
 
 const PORT = Number(process.env.PORT ?? 3000);
@@ -44,9 +45,30 @@ export const server = http.createServer(async (req, res) => {
     return;
   }
 
+  log404(req, path);
   res.writeHead(404, { "content-type": "application/json" });
   res.end(JSON.stringify({ error: "not found" }));
 });
+
+const getSafeRequestId =(req: IncomingMessage): string | undefined => {
+  const xRequestId = req.headers["x-request-id"];
+  if (typeof xRequestId !== "string" ) return undefined;
+  if (xRequestId.length === 0 || xRequestId.length > 64 ) return undefined;
+  if (!/^[A-Za-z0-9._-]+$/.test(xRequestId)) return undefined;
+
+  return xRequestId;
+};
+
+const log404 = (req: IncomingMessage, path: string): void => {
+  const method: string = req.method ?? "UNKNOWN";
+  const rid: string | undefined = getSafeRequestId(req);
+
+  const message = rid
+    ? `[access] 404 ${method} ${path} rid=${rid}`
+    : `[access] 404 ${method} ${path}`
+
+  console.log(message);
+};
 
 export const start = (port: number = PORT): Promise<void> => {
   return new Promise((resolve, reject) => {
